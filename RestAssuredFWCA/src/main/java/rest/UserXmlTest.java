@@ -1,6 +1,12 @@
-package helloWorld;
+package rest;
 
+import io.restassured.builder.RequestSpecBuilder;
+import io.restassured.builder.ResponseSpecBuilder;
+import io.restassured.filter.log.LogDetail;
 import io.restassured.path.xml.element.Node;
+import io.restassured.specification.RequestSpecification;
+import io.restassured.specification.ResponseSpecification;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
 import java.util.ArrayList;
@@ -11,13 +17,37 @@ import static org.junit.Assert.*;
 
 public class UserXmlTest {
 
+    public static RequestSpecification reqSpec;
+    public static ResponseSpecification resSpec;
+
+    @BeforeClass
+    public static void setUp() {
+        baseURI = "https://restapi.wcaquino.me";
+//        port = 443;
+//        basePath = "";
+
+        RequestSpecBuilder reqBuilder = new RequestSpecBuilder();
+        reqBuilder.log(LogDetail.ALL);
+        reqSpec = reqBuilder.build();
+
+        ResponseSpecBuilder resBuilder = new ResponseSpecBuilder();
+        resBuilder.expectStatusCode(200);
+        resSpec = resBuilder.build();
+
+        requestSpecification = reqSpec;
+        responseSpecification = resSpec;
+    }
+
     @Test
     public void shouldWorkWithXml() {
+
         given()
+//            .spec(reqSpec)
         .when()
-            .get("https://restapi.wcaquino.me/usersXML/3")
+            .get("/usersXML/3")
         .then()
-            .statusCode(200)
+//            .statusCode(200)
+//            .spec(resSpec)
 
             .rootPath("user")
             .body("name", is("Ana Julia"))
@@ -39,10 +69,11 @@ public class UserXmlTest {
     @Test
     public void shouldPerformAdvancedQueriesOnXml() {
         given()
+//            .spec(reqSpec)
         .when()
-            .get("https://restapi.wcaquino.me/usersXML")
+            .get("/usersXML")
         .then()
-            .statusCode(200)
+//            .spec(resSpec)
             .rootPath("users.user")
             .body("size()", is(3))
             .body("findAll { it.age.toInteger() <= 25 }.size()", is(2))
@@ -60,10 +91,11 @@ public class UserXmlTest {
 
         ArrayList<Node> names =
             given()
+//                .spec(reqSpec)
             .when()
-                .get("https://restapi.wcaquino.me/usersXML")
+                .get("/usersXML")
             .then()
-                .statusCode(200)
+//                .spec(resSpec)
                 .extract().path("users.user.name.findAll { it.toString().contains('n') }")
         ;
         assertEquals(2, names.size());
@@ -74,10 +106,11 @@ public class UserXmlTest {
     @Test
     public void shouldPerformAdvancedQueriesWithXPath() {
         given()
+//            .spec(reqSpec)
         .when()
-            .get("https://restapi.wcaquino.me/usersXML")
+            .get("/usersXML")
         .then()
-            .statusCode(200)
+//            .spec(resSpec)
             .body(hasXPath("count(/users/user)", is("3")))
             .body(hasXPath("/users/user[@id='1']"))
             .body(hasXPath("//user[@id='1']"))

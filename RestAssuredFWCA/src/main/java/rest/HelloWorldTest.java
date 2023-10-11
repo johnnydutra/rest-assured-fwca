@@ -1,9 +1,8 @@
-package helloWorld;
+package rest;
 
 import io.restassured.http.Method;
 import io.restassured.response.Response;
 import io.restassured.response.ValidatableResponse;
-import org.hamcrest.Matchers;
 import org.junit.Assert;
 import org.junit.Test;
 

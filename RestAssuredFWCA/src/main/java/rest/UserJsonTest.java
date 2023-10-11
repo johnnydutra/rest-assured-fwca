@@ -1,4 +1,4 @@
-package helloWorld;
+package rest;
 
 import static io.restassured.RestAssured.*;
 import static java.lang.Integer.valueOf;
