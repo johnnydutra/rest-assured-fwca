@@ -3,64 +3,70 @@ package tests;
 import core.Actions;
 import core.Hooks;
 
+import io.restassured.specification.FilterableRequestSpecification;
+import org.junit.Before;
+import org.junit.BeforeClass;
+import org.junit.FixMethodOrder;
 import org.junit.Test;
+import org.junit.runners.MethodSorters;
 import pojo.Account;
 import pojo.Transaction;
+import utils.DateUtils;
 
 import static io.restassured.RestAssured.*;
 import static org.hamcrest.Matchers.*;
 
+@FixMethodOrder(MethodSorters.NAME_ASCENDING)
 public class BarrigaTest extends Hooks {
 
-    String ACCESS_TOKEN = Actions.getToken(SEU_BARRIGA_EMAIL, SEU_BARRIGA_PASSWORD);
-    Account newAccount = new Account("New Account");
-    Account accountUpdate = new Account("Updated Account");
-    Account existingAccount = new Account("Existing Account");
-    Integer accountUpdateId = 1946993;
-    Integer accountWithTransactionsId = 1946998;
+    private static final String newAccountName = "Account " + System.nanoTime();
+    private static Integer newAccountId;
+    private static Integer newTransactionId;
 
-    @Test
-    public void shouldNotAccessWithoutToken() {
-        given()
-        .when()
-            .get("/contas")
-        .then()
-            .statusCode(401)
-        ;
+
+    Account newAccount = new Account(newAccountName);
+    Account accountUpdate = new Account("Updated " + newAccountName);
+
+
+    @BeforeClass
+    public static void login() {
+        String ACCESS_TOKEN = Actions.getToken(SEU_BARRIGA_EMAIL, SEU_BARRIGA_PASSWORD);
+        requestSpecification.header("Authorization", "JWT " + ACCESS_TOKEN);
     }
 
     @Test
-    public void shouldAddAccountSuccessfully() {
+    public void t01_shouldAddAccountSuccessfully() {
 
-        given()
-            .header("Authorization", "JWT " + ACCESS_TOKEN)
-            .body(newAccount)
-        .when()
-            .post("/contas")
-        .then()
-            .log().all()
-            .statusCode(201)
-            .extract().path("id")
-        ;
+        newAccountId =
+            given()
+                .body(newAccount)
+            .when()
+                .post("/contas")
+            .then()
+                .log().all()
+                .statusCode(201)
+                .extract().path("id")
+            ;
     }
 
     @Test
-    public void shouldUpdateAccountSuccessfully() {
+    public void t02_shouldUpdateAccountSuccessfully() {
+
         given()
-            .header("Authorization", "JWT " + ACCESS_TOKEN)
             .body(accountUpdate)
+            .pathParam("id", newAccountId)
         .when()
-            .put("/contas/" + accountUpdateId)
+            .put("/contas/{id}")
         .then()
             .statusCode(200)
             .body("nome", is(accountUpdate.getNome()));
     }
 
     @Test
-    public void shouldNotAddDuplicatedAccount() {
+    public void t03_shouldNotAddDuplicatedAccount() {
+
         given()
-            .header("Authorization", "JWT " + ACCESS_TOKEN)
-            .body(existingAccount)
+            .body(accountUpdate)
         .when()
             .post("/contas")
         .then()
@@ -70,31 +76,24 @@ public class BarrigaTest extends Hooks {
     }
 
     @Test
-    public void shouldAddTransactionSuccessfully() {
-        Transaction newTransaction = new Transaction();
-        newTransaction.setConta_id(1946998);
-        newTransaction.setDescricao("Added with REST-assured");
-        newTransaction.setEnvolvido("FWCA");
-        newTransaction.setTipo("REC");
-        newTransaction.setData_transacao("01/01/2023");
-        newTransaction.setData_pagamento("30/03/2023");
-        newTransaction.setValor(123f);
-        newTransaction.setStatus(true);
+    public void t04_shouldAddTransactionSuccessfully() {
+        Transaction newTransaction = Actions.getValidTransaction(newAccountId);
 
-        given()
-            .header("Authorization", "JWT " + ACCESS_TOKEN)
-            .body(newTransaction)
-        .when()
-            .post("/transacoes")
-        .then()
-            .statusCode(201)
-        ;
+        newTransactionId =
+            given()
+                .body(newTransaction)
+            .when()
+                .post("/transacoes")
+            .then()
+                .statusCode(201)
+                .extract().path("id")
+            ;
     }
 
     @Test
-    public void shouldValidateMandatoryTransactionFields() {
+    public void t05_shouldValidateMandatoryTransactionFields() {
+
         given()
-            .header("Authorization", "JWT " + ACCESS_TOKEN)
             .body("{}")
         .when()
             .post("/transacoes")
@@ -115,19 +114,12 @@ public class BarrigaTest extends Hooks {
     }
 
     @Test
-    public void shouldNotAddFutureTransaction() {
-        Transaction futureTransaction = new Transaction();
-        futureTransaction.setConta_id(1946998);
-        futureTransaction.setDescricao("Future Transaction");
-        futureTransaction.setEnvolvido("FWCA");
-        futureTransaction.setTipo("REC");
-        futureTransaction.setData_transacao("01/01/2024");
-        futureTransaction.setData_pagamento("30/03/2024");
-        futureTransaction.setValor(123f);
-        futureTransaction.setStatus(true);
+    public void t06_shouldNotAddFutureTransaction() {
+        Transaction futureTransaction = Actions.getValidTransaction(newAccountId);
+        futureTransaction.setData_transacao(DateUtils.getDateWithDaysDifference(2));
+        futureTransaction.setData_pagamento(DateUtils.getDateWithDaysDifference(5));
 
         given()
-            .header("Authorization", "JWT " + ACCESS_TOKEN)
             .body(futureTransaction)
         .when()
             .post("/transacoes")
@@ -139,11 +131,12 @@ public class BarrigaTest extends Hooks {
     }
 
     @Test
-    public void shouldNotDeleteAccountWithTransactions() {
+    public void t07_shouldNotDeleteAccountWithTransactions() {
+
         given()
-            .header("Authorization", "JWT " + ACCESS_TOKEN)
+            .pathParam("id", newAccountId)
         .when()
-            .delete("/contas/" + accountWithTransactionsId)
+            .delete("/contas/{id}")
         .then()
             .statusCode(500)
             .body("constraint", is("transacoes_conta_id_foreign"))
@@ -151,25 +144,39 @@ public class BarrigaTest extends Hooks {
     }
 
     @Test
-    public void shouldCalculateAccountBalance() {
+    public void t08_shouldCalculateAccountBalance() {
+
         given()
-            .header("Authorization", "JWT " + ACCESS_TOKEN)
         .when()
             .get("/saldo")
         .then()
             .statusCode(200)
-            .body("find { it.conta_id == 1946998 }.saldo", is("123.00"))
+            .body("find { it.conta_id == " + newAccountId + " }.saldo", is("123.00"))
         ;
     }
 
     @Test
-    public void shouldDeleteTransaction() {
+    public void t09_shouldDeleteTransaction() {
+
         given()
-            .header("Authorization", "JWT " + ACCESS_TOKEN)
+            .pathParam("id", newTransactionId)
         .when()
-            .delete("/transacoes/1825175")
+            .delete("/transacoes/{id}")
         .then()
             .statusCode(204)
+        ;
+    }
+
+    @Test
+    public void t10_shouldNotAccessWithoutToken() {
+        FilterableRequestSpecification request = (FilterableRequestSpecification) requestSpecification;
+        request.removeHeader("Authorization");
+
+        given()
+        .when()
+            .get("/contas")
+        .then()
+            .statusCode(401)
         ;
     }
 }

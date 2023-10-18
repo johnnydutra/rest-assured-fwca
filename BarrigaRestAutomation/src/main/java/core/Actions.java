@@ -1,6 +1,8 @@
 package core;
 
 import io.restassured.http.ContentType;
+import pojo.Transaction;
+import utils.DateUtils;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -29,5 +31,18 @@ public class Actions {
             ;
 
         return token;
+    }
+
+    public static Transaction getValidTransaction(Integer accountId) {
+        Transaction transaction = new Transaction();
+        transaction.setConta_id(accountId);
+        transaction.setDescricao("Added with REST-assured");
+        transaction.setEnvolvido("FWCA");
+        transaction.setTipo("REC");
+        transaction.setData_transacao(DateUtils.getDateWithDaysDifference(-1));
+        transaction.setData_pagamento(DateUtils.getDateWithDaysDifference(5));
+        transaction.setValor(123f);
+        transaction.setStatus(true);
+        return transaction;
     }
 }
