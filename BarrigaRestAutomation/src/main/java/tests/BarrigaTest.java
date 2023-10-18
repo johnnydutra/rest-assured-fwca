@@ -1,10 +1,9 @@
 package tests;
 
-import core.Actions;
+import utils.Helpers;
 import core.Hooks;
 
 import io.restassured.specification.FilterableRequestSpecification;
-import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.FixMethodOrder;
 import org.junit.Test;
@@ -30,7 +29,7 @@ public class BarrigaTest extends Hooks {
 
     @BeforeClass
     public static void login() {
-        String ACCESS_TOKEN = Actions.getToken(SEU_BARRIGA_EMAIL, SEU_BARRIGA_PASSWORD);
+        String ACCESS_TOKEN = Helpers.getToken(SEU_BARRIGA_EMAIL, SEU_BARRIGA_PASSWORD);
         requestSpecification.header("Authorization", "JWT " + ACCESS_TOKEN);
     }
 
@@ -77,7 +76,7 @@ public class BarrigaTest extends Hooks {
 
     @Test
     public void t04_shouldAddTransactionSuccessfully() {
-        Transaction newTransaction = Actions.getValidTransaction(newAccountId);
+        Transaction newTransaction = Helpers.getValidTransaction(newAccountId);
 
         newTransactionId =
             given()
@@ -115,7 +114,7 @@ public class BarrigaTest extends Hooks {
 
     @Test
     public void t06_shouldNotAddFutureTransaction() {
-        Transaction futureTransaction = Actions.getValidTransaction(newAccountId);
+        Transaction futureTransaction = Helpers.getValidTransaction(newAccountId);
         futureTransaction.setData_transacao(DateUtils.getDateWithDaysDifference(2));
         futureTransaction.setData_pagamento(DateUtils.getDateWithDaysDifference(5));
 

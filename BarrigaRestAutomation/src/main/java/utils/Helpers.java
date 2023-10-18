@@ -1,4 +1,4 @@
-package core;
+package utils;
 
 import io.restassured.http.ContentType;
 import pojo.Transaction;
@@ -9,7 +9,7 @@ import java.util.Map;
 
 import static io.restassured.RestAssured.*;
 
-public class Actions {
+public class Helpers {
 
     public static String getToken(String email, String password) {
 
@@ -44,5 +44,19 @@ public class Actions {
         transaction.setValor(123f);
         transaction.setStatus(true);
         return transaction;
+    }
+
+    public static void resetDatabase() {
+        get("/reset").then().statusCode(200);
+    }
+
+    public static Integer getAccountIdByName(String name) {
+        return get("/contas?nome=" + name)
+            .then().extract().path("id[0]");
+    }
+
+    public static Integer getTransactionIdByDescription(String description) {
+        return get("/transacoes?descricao=" + description)
+            .then().extract().path("id[0]");
     }
 }
